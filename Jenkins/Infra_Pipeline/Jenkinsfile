@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        // AWS region for the Terraform operations
-        AWS_REGION = 'us-east-2'
-    }
-
     stages {
         stage('Checkout SCM stage') {
             steps {
@@ -15,68 +10,64 @@ pipeline {
                 }
             }
         }
+        stage('Install Terraform') {
+            steps {
+                // Install Terraform dynamically during the pipeline execution
+                sh '''
+                    # Add the HashiCorp GPG key
+                    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 
+                    # Add the official HashiCorp Linux repository
+                    sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+
+                    # Update and install Terraform
+                    sudo apt-get update && sudo apt-get install -y terraform
+
+                    # Verify installation
+                    terraform -v
+                '''
+            }
+        }
+        
         stage('Initialize Terraform') {
             steps {
-                dir('Terraform'){
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    sh '''
-                    terraform init
-                    '''
-                }
+                dir('Terraform') {
+                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
+                        sh 'terraform init'
+                    }
                 }
             }
         }
 
         stage('Terraform Validate') {
             steps {
-                dir('Terraform'){
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    sh '''
-                    terraform validate
-                    '''
-                }
+                dir('Terraform') {
+                    sh 'terraform validate'
                 }
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                dir('Terraform'){
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    sh '''
-                    terraform plan
-                    '''
-                }
+                dir('Terraform') {
+                    sh 'terraform plan'
                 }
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                dir('Terraform'){
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    sh '''
-                    terraform ${action} -auto-approve
-                    '''
-                }
+                dir('Terraform') {
+                    sh 'terraform apply -auto-approve'
                 }
             }
         }
     }
 
     post {
-        always {
-            // Clean up workspace after the build
-            cleanWs()
-        }
-
-        success {
-            echo 'Terraform infrastructure setup completed successfully!'
-        }
-
         failure {
-            echo 'Terraform infrastructure setup failed.'
+            echo "Terraform infrastructure setup failed."
+            cleanWs()
         }
     }
 }
