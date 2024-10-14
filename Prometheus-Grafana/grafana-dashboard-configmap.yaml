@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  dashboard.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "id": 1,
+          "targets": [
+            {
+              "expr": "node_cpu_seconds_total",
+              "interval": "",
+              "intervalFactor": 2,
+              "legendFormat": "{{cpu}}",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Usage",
+          "type": "graph"
+        }
+      ],
+      "title": "Monitoring Dashboard"
+    }

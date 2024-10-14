@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+  namespace: project
+  labels:
+    app: bookmanage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookmanage
+  template:
+    metadata:
+      labels:
+        app: bookmanage
+    spec:
+      containers:
+      - name: bookmanage
+        image: abdelrhman98/books:latest
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - mountPath: "/app/db"
+          name: bookmanage-storage
+      volumes:
+      - name: bookmanage-storage
+        persistentVolumeClaim:
+          claimName: my-pv-claim2

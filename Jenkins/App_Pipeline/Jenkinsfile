@@ -1,0 +1,80 @@
+@Library('Jenkins-Shared-Library') _
+pipeline {
+    agent any
+
+    stages {
+        
+        stage('Checkout SCM stage') {
+            steps {
+                // Checkout SCM stage
+                script {
+                    checkout scm   
+                }
+            }
+        }
+
+        stage('Linter Stage') {
+            steps {
+                // Run Flake8, save the output to a report, and check for fatal errors (e.g., syntax errors)
+                script {
+                    dir('App'){
+                        runFlake8Linting()   
+                    }                 
+                }
+            }
+        }
+
+        stage('UnitTesting') {
+            steps {
+                // App Feature Testing: Unit Testing For Django APP
+                script {
+                    dir('App') {
+                        unitTestDjango()
+                    }   
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    dir('App') {
+                        buildDockerImage('abdelrhman98/books:latest')
+                    }       
+                }
+            }
+        }
+
+        stage('Push Image ') {
+            steps {
+                script {
+                    // Login to Docker Hub using stored credentials, Then Push Image
+                    dockerHubLogin('Docker_Creds')
+                    pushDockerImage('abdelrhman98/books:latest')
+                }
+            }
+        }
+
+
+        stage('Deployment Stage'){
+            steps{
+                // Check if Cluster is Exist or not by Name and If there is already a Deployment or not then Deploy
+                script{
+                    dir('K8s'){
+                        checkdeployEksCluster('aws-jenkins-credentials', 'eks-cluster','us-east-2')
+                    }
+                }
+            }
+        }
+
+    }
+    
+    post {
+        always {
+            // Clean up the workspace and logout from Docker Hub
+            echo "Cleaning up the workspace and logging out from Docker Hub..."
+            sh 'docker logout'
+            cleanWs()
+        }
+    }
+}

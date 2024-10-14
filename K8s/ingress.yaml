@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  namespace: project
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules: # This is a custom hostname for local use
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-service   # This links to your service
+            port:
+              number: 80       # Port of the service

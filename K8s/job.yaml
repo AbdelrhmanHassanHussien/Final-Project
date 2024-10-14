@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: copy-db-job
+  namespace: project
+spec:
+  template:
+    spec:
+      containers:
+      - name: copy-db
+        image: abdelrhman98/books:latest
+        command: ['sh', '-c', 'cp -r /app/db/* /mnt/data/bookmanage/']
+        volumeMounts:
+        - name: bookmanage-storage
+          mountPath: /mnt/data/bookmanage
+      restartPolicy: OnFailure
+      volumes:
+      - name: bookmanage-storage
+        persistentVolumeClaim:
+          claimName: my-pv-claim2

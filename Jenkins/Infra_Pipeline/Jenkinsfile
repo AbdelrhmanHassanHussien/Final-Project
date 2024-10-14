@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+
+    environment {
+        // AWS region for the Terraform operations
+        AWS_REGION = 'us-east-2'
+    }
+
+    stages {
+        stage('Checkout SCM stage') {
+            steps {
+                // Checkout SCM stage
+                script {
+                    checkout scm   
+                }
+            }
+        }
+
+        stage('Initialize Terraform') {
+            steps {
+                dir('Terraform'){
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    sh '''
+                    terraform init
+                    '''
+                }
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('Terraform'){
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    sh '''
+                    terraform validate
+                    '''
+                }
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('Terraform'){
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    sh '''
+                    terraform plan
+                    '''
+                }
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('Terraform'){
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-jenkins-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    sh '''
+                    terraform ${action} -auto-approve
+                    '''
+                }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up workspace after the build
+            cleanWs()
+        }
+
+        success {
+            echo 'Terraform infrastructure setup completed successfully!'
+        }
+
+        failure {
+            echo 'Terraform infrastructure setup failed.'
+        }
+    }
+}

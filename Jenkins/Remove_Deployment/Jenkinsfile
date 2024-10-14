@@ -1,0 +1,33 @@
+@Library('Jenkins-Shared-Library') _
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout SCM stage') {
+            steps {
+                // Checkout SCM stage
+                script {
+                    checkout scm   
+                }
+            }
+        }
+        stage('remove EKS Cluster deployment'){
+            steps{
+                // Stage For Removing application Deployment on EKS Cluster
+                dir('K8s'){
+                    script{
+                        removeDeploymentStage('aws-jenkins-credentials', 'eks-cluster','us-east-2')
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            // Clean up the workspace and logout from Docker Hub
+            echo "Cleaning up the workspace and logging out from Docker Hub..."
+            cleanWs()
+        }
+    }
+}
