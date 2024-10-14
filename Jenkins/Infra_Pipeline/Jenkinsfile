@@ -12,18 +12,22 @@ pipeline {
         }
         stage('Install Terraform') {
             steps {
-                // Install Terraform dynamically during the pipeline execution
+                // Install Terraform in the current workspace without sudo
                 sh '''
-                    # Add the HashiCorp GPG key
-                    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+                    # Download Terraform binary
+                    curl -O https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip
 
-                    # Add the official HashiCorp Linux repository
-                    sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+                    # Unzip and move Terraform to the local bin
+                    unzip terraform_1.5.6_linux_amd64.zip
+                    chmod +x terraform
 
-                    # Update and install Terraform
-                    sudo apt-get update && sudo apt-get install -y terraform
+                    # Move Terraform to a known directory (workspace) and add it to PATH
+                    mv terraform /var/jenkins_home/workspace/Final\\ Project/bin/
 
-                    # Verify installation
+                    # Add Terraform binary path to the environment variable PATH
+                    export PATH=$PATH:/var/jenkins_home/workspace/Final\\ Project/bin
+
+                    # Check Terraform version to confirm installation
                     terraform -v
                 '''
             }
