@@ -1,7 +1,9 @@
+@Library('Jenkins-Shared-Library') _
 pipeline {
     agent any
 
     stages {
+        
         stage('Checkout SCM stage') {
             steps {
                 // Checkout SCM stage
@@ -10,67 +12,68 @@ pipeline {
                 }
             }
         }
-        stage('Install Terraform') {
+
+        stage('Linter Stage') {
             steps {
-                // Install Terraform in the current workspace without sudo
-                sh '''
-                    # Download Terraform binary
-                    curl -O https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip
-
-                    # Unzip and move Terraform to the local bin
-                    unzip terraform_1.5.6_linux_amd64.zip
-                    chmod +x terraform
-
-                    # Move Terraform to a known directory (workspace) and add it to PATH
-                    mv terraform /var/jenkins_home/workspace/Final\\ Project/bin/
-
-                    # Add Terraform binary path to the environment variable PATH
-                    export PATH=$PATH:/var/jenkins_home/workspace/Final\\ Project/bin
-
-                    # Check Terraform version to confirm installation
-                    terraform -v
-                '''
+                // Run Flake8, save the output to a report, and check for fatal errors (e.g., syntax errors)
+                script {
+                    dir('App'){
+                        runFlake8Linting()   
+                    }                 
+                }
             }
         }
-        
-        stage('Initialize Terraform') {
+
+        stage('UnitTesting') {
             steps {
-                dir('Terraform') {
-                    withCredentials([aws(credentialsId: 'aws-jenkins-credentials')]) {
-                        sh 'terraform init'
+                // App Feature Testing: Unit Testing For Django APP
+                script {
+                    dir('App') {
+                        unitTestDjango()
+                    }   
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    dir('App') {
+                        buildDockerImage('abdelrhman98/books:latest')
+                    }       
+                }
+            }
+        }
+
+        stage('Push Image ') {
+            steps {
+                script {
+                    // Login to Docker Hub using stored credentials, Then Push Image
+                    dockerHubLogin('Docker_Creds')
+                    pushDockerImage('abdelrhman98/books:latest')
+                }
+            }
+        }
+
+
+        stage('Deployment Stage'){
+            steps{
+                // Check if Cluster is Exist or not by Name and If there is already a Deployment or not then Deploy
+                script{
+                    dir('K8s'){
+                        checkdeployEksCluster('aws-jenkins-credentials', 'eks-cluster','us-east-2')
                     }
                 }
             }
         }
 
-        stage('Terraform Validate') {
-            steps {
-                dir('Terraform') {
-                    sh 'terraform validate'
-                }
-            }
-        }
-
-        stage('Terraform Plan') {
-            steps {
-                dir('Terraform') {
-                    sh 'terraform plan'
-                }
-            }
-        }
-
-        stage('Terraform Apply') {
-            steps {
-                dir('Terraform') {
-                    sh 'terraform apply -auto-approve'
-                }
-            }
-        }
     }
-
+    
     post {
-        failure {
-            echo "Terraform infrastructure setup failed."
+        always {
+            // Clean up the workspace and logout from Docker Hub
+            echo "Cleaning up the workspace and logging out from Docker Hub..."
+            sh 'docker logout'
             cleanWs()
         }
     }
