@@ -1,0 +1,162 @@
+{% extends 'base_lib.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+
+    .collapsible {
+  background-color: #383838;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 30px;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active, .collapsible:hover {
+  background-color: #388f67;
+}
+
+/* Style the collapsible content. Note: hidden by default */
+.content {
+  padding: 0 18px;
+  display: none;
+  overflow: hidden;
+  background-color: #76c9a2;
+}
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        overflow-x: auto; /* Enable horizontal scrolling on small screens */
+    }
+    th, td {
+        border: 2px solid #060505;
+        text-align: left;
+        padding: 8px;
+        border-radius: 10px;
+        border-color: black;
+        background-color: #ffffff;
+        white-space: nowrap; /* Prevent text wrapping */
+    }
+    th {
+        background-color: #d887de;
+    }
+    .search-container {
+        margin-bottom: 20px;
+    }
+    .search-container form input[type=text],
+    .search-container form input[type=number],
+    .search-container form input[type=date] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    margin-top: 6px;
+    margin-bottom: 16px;
+}
+
+    /* Hide ID column on small screens */
+    @media screen and (max-width: 600px) {
+        th:first-child,
+        td:first-child {
+            display: none;
+        }
+    }
+</style>
+
+<button type="button" class="collapsible">Click here to search !!</button>
+<div class="content">
+  
+<h2>Books</h2>
+<div class="search-container">
+    <form method="GET">
+        <label for="title">Title:</label>
+        <input type="text" id= 'title' name="title" placeholder="Search for Book titles...">
+        <label for="cat">Category:</label>
+        <input type="text" id= 'cat'name="category" placeholder="Search for Book category...">
+        <button type="submit">Search</button>
+    </form>
+</div>
+</div>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>author</th>
+            <th>publication_date</th>
+            <th>Category</th>
+            <th>is_borrowed</th>
+            {% if user.is_superuser %}
+            <th>Edit Borrow Status</th>
+            {% else %}
+                        <th>Borrow Book ?</th>
+            {% endif %}
+            {% if user.is_superuser %}
+            <th>Delete Book</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for book in Books %}
+        <tr>
+            <td>{{ book.id }}</td>
+            <td>{{ book.title }}</td>
+            <td>{{ book.author }}</td>
+            <td>{{ book.publication_date }}</td>
+            <td>{{ book.category }}</td>
+            <td style="color: {% if book.is_borrowed %}blue{% else %}green{% endif %};">
+                {{ book.is_borrowed }}
+            </td>
+            <td>
+                {% if user.is_superuser %}
+                    <a href="{% url 'update_borrow_status' book.id %}">Edit Borrow Status</a>
+                {% else %}
+                    {% if not book.is_borrowed %}
+                        <a href="{% url 'update_borrow_status' book.id %}">Borrow This Book</a>
+                    {% else %}
+                        Book is currently borrowed
+                    {% endif %}
+                {% endif %}
+            </td>
+            {% if user.is_superuser %}
+            <td><a style="color: red;"  href="#">Remove</a></td>
+            {% endif %}
+        {% endfor %}
+
+
+        <!-- <tr>
+            <td colspan="8"><strong>Total Fees:</strong></td>
+            <td><strong>{{ total_fees }}</strong></td>
+        </tr>
+        <tr>
+            <td colspan="8"><strong>Total Records:</strong></td>
+            <td><strong>{{ total_count }}</strong></td>
+        </tr> -->
+    </tbody>
+</table>
+
+
+<script>
+    var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.display === "block") {
+      content.style.display = "none";
+    } else {
+      content.style.display = "block";
+    }
+  });
+}
+</script>
+{% endblock %}
